@@ -1,37 +1,46 @@
-// IMPORTS - Importación de dependencias principales
+// ===============================
+// IMPORTS - Dependencias principales
+// ===============================
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-// Helmet puede ser ESM en versiones recientes; lo cargamos dinámicamente
+require('dotenv').config();
+
+// ===============================
+// HELMET (compatible CJS / ESM)
+// ===============================
 let helmetMiddleware = null;
 async function setupHelmet(app) {
   try {
-    // Intentar cargar versión CommonJS
     const helmetCjs = require('helmet');
     helmetMiddleware = helmetCjs;
   } catch (err) {
-    // Fallback a import ESM
     const helmetEsm = (await import('helmet')).default;
     helmetMiddleware = helmetEsm;
   }
 
-  app.use(helmetMiddleware({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmetMiddleware({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
-    },
-  }));
+    })
+  );
 }
-require('dotenv').config(); // Cargar variables de entorno
 
-// Importar configuración de base de datos
+// ===============================
+// IMPORTAR CONFIGURACIÓN BD
+// ===============================
 const { testConnection } = require('./config/database');
 
-// IMPORTAR RUTAS - Módulos de rutas organizados por funcionalidad
+// ===============================
+// IMPORTAR RUTAS
+// ===============================
 const authRoutes = require('./routes/auth');
 const usuariosRoutes = require('./routes/usuarios');
 const pedidosRoutes = require('./routes/pedidos');
@@ -41,127 +50,133 @@ const notificacionesRoutes = require('./routes/notificaciones');
 const analisisEspacioRoutes = require('./routes/analisisEspacio');
 const modelosRoutes = require('./routes/modelos');
 
-// IMPORTAR MIDDLEWARE - Middleware personalizado para manejo de errores y logging
+// ===============================
+// IMPORTAR MIDDLEWARE
+// ===============================
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
 
-// CONFIGURACIÓN DEL SERVIDOR - Inicialización de Express y configuración del puerto
+// ===============================
+// CONFIGURACIÓN EXPRESS
+// ===============================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MIDDLEWARE DE SEGURIDAD - Configuración de Helmet para headers de seguridad
-// Configurar Helmet de forma segura más adelante (ESM/CJS compatible)
+// ===============================
+// CORS
+// ===============================
+app.use(
+  cors({
+    origin: [
+      process.env.CORS_ORIGIN || 'http://localhost:8080',
+      'http://localhost:8081',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-// CONFIGURACIÓN CORS - Permitir peticiones desde el frontend
-app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN || 'http://localhost:8080', // URL del frontend (producción)
-    'http://localhost:8081', // Vite puede mover el puerto si 8080 está ocupado
-    'http://localhost:5173', // URL del frontend (desarrollo con Vite)
-    'http://127.0.0.1:5173' // Alternativa para localhost
-  ],
-  credentials: true, // Permitir cookies y headers de autenticación
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // Métodos HTTP permitidos
-  allowedHeaders: ['Content-Type', 'Authorization'] // Headers permitidos
-}));
+// ===============================
+// PARSING
+// ===============================
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MIDDLEWARE PARA PARSING - Configuración para procesar JSON y URL-encoded
-app.use(express.json({ limit: '10mb' })); // Límite de 10MB para JSON
-app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Límite para form data
-
-// MIDDLEWARE DE LOGGING - Registrar todas las peticiones HTTP
+// ===============================
+// LOGGING
+// ===============================
 app.use(requestLogger);
 
-// RUTA DE SALUD DEL SERVIDOR - Endpoint para verificar el estado del servidor
+// ===============================
+// HEALTH CHECK
+// ===============================
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(), // Tiempo que lleva ejecutándose el servidor
-    environment: process.env.NODE_ENV || 'development'
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
-// RUTA RAÍZ - Información general de la API y endpoints disponibles
-// La ruta raíz será servida por el frontend (SPA)
+// Rutas API
+app.use('/api', authRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/pedidos', pedidosRoutes);
+app.use('/api/catalogo', catalogoRoutes);
+app.use('/api/recomendaciones', recomendacionesRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/analisis-espacio', analisisEspacioRoutes);
+app.use('/api/modelos', modelosRoutes);
 
-// CONFIGURACIÓN DE RUTAS - Montaje de rutas organizadas por módulos bajo el prefijo /api
-app.use('/api', authRoutes); // Rutas de autenticación (login, registro)
-app.use('/api/usuarios', usuariosRoutes); // Rutas de gestión de usuarios
-app.use('/api/pedidos', pedidosRoutes); // Rutas de gestión de pedidos
-app.use('/api/catalogo', catalogoRoutes); // Rutas del catálogo de productos
-app.use('/api/recomendaciones', recomendacionesRoutes); // Rutas del sistema de IA
-app.use('/api/notificaciones', notificacionesRoutes); // Rutas de notificaciones
-app.use('/api/analisis-espacio', analisisEspacioRoutes); // Rutas de análisis de espacio con IA
-app.use('/api/modelos', modelosRoutes); // Rutas de generación de modelos 3D
+// 404 solo para API
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    error: 'Ruta API no encontrada',
+    path: req.originalUrl,
+  });
+});
 
-// ===============================
-// SERVIR FRONTEND VUE (VITE)
-// ===============================
+// Servir frontend desde dist
 const FRONTEND_PATH = path.join(__dirname, 'frontend', 'dist');
 app.use(express.static(FRONTEND_PATH));
 app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_PATH, 'index.html'));
 });
 
-// 404 exclusivo para rutas de API no encontradas
-app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    error: 'Ruta de API no encontrada',
-    message: `La ruta ${req.originalUrl} no existe en esta API`
-  });
-});
-
-// MIDDLEWARE DE MANEJO DE ERRORES - Debe ir al final para capturar todos los errores
+// ===============================
+// MANEJO DE ERRORES
+// ===============================
 app.use(errorHandler);
 
-// FUNCIÓN PARA INICIAR EL SERVIDOR - Configuración de inicio con verificación de BD
+// ===============================
+// INICIAR SERVIDOR
+// ===============================
 const startServer = async () => {
   try {
-    // Probar conexión a la base de datos antes de iniciar
     await testConnection();
-    // Configurar Helmet después de confirmar entorno
     await setupHelmet(app);
-    
-    // Iniciar servidor HTTP
+
     app.listen(PORT, () => {
       console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
       console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`📡 API disponible en: http://localhost:${PORT}`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`📚 Documentación: http://localhost:${PORT}/`);
-      }
+      console.log(`🏥 Health: /health`);
+      console.log(`🖥️ Frontend servido desde /`);
     });
   } catch (error) {
     console.error('❌ Error al iniciar el servidor:', error);
-    process.exit(1); // Salir con código de error
+    process.exit(1);
   }
 };
 
-// MANEJO DE SEÑALES - Configuración para cierre graceful del servidor
+// ===============================
+// SEÑALES DEL SISTEMA
+// ===============================
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM recibido, cerrando servidor...');
+  console.log('🛑 SIGTERM recibido');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 SIGINT recibido, cerrando servidor...');
+  console.log('🛑 SIGINT recibido');
   process.exit(0);
 });
 
-// MANEJO DE ERRORES NO CAPTURADOS - Prevención de crashes inesperados
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection en:', promise, 'razón:', reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled Rejection:', reason);
 });
 
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  process.exit(1); // Salir con código de error para errores críticos
+  process.exit(1);
 });
 
-// INICIAR SERVIDOR - Llamada a la función de inicio
+// ===============================
+// START
+// ===============================
 startServer();
 
 module.exports = app;
