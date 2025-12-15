@@ -5,12 +5,13 @@ import { useToast } from 'vue-toastification'
 const AUTH_API_BASE = import.meta.env.DEV
   ? '/api'
   : import.meta.env.VITE_AUTH_API_BASE_URL ||
-    'https://x8ki-letl-twmt.n7.xano.io/api:29YGdjkj'
+    import.meta.env.VITE_API_BASE_URL ||
+    'https://asdasd.vercel.app/api'
 const APP_API_BASE = import.meta.env.DEV
   ? '/api'
   : import.meta.env.VITE_APP_API_BASE_URL ||
     import.meta.env.VITE_API_BASE_URL ||
-    'https://x8ki-letl-twmt.n7.xano.io/api:nWj2ojpi'
+    'https://asdasd.vercel.app/api'
 const authApi = axios.create({
   baseURL: AUTH_API_BASE,
   timeout: 30000,
@@ -246,39 +247,22 @@ export const apiMethods = {
 // API DE AUTENTICACIÓN - Manejo de sesiones y tokens
 export const authAPI = {
   // Iniciar sesión con credenciales
-  login: credentials =>
-    authApi.post(import.meta.env.DEV ? '/login' : '/auth/login', credentials),
+  login: credentials => authApi.post('/login', credentials),
   // Iniciar sesión como administrador
-  adminLogin: credentials =>
-    authApi.post(import.meta.env.DEV ? '/login' : '/auth/login', credentials),
+  adminLogin: credentials => authApi.post('/login', credentials),
   // Registrar nuevo usuario
-  register: userData =>
-    authApi.post(
-      import.meta.env.DEV ? '/usuarios/registrar' : '/auth/register',
-      userData,
-    ),
+  register: userData => authApi.post('/usuarios/registrar', userData),
   // Cerrar sesión
-  logout: () => authApi.post(import.meta.env.DEV ? '/logout' : '/auth/logout'),
+  logout: () => authApi.post('/logout'),
   // Renovar token de acceso
   refreshToken: refreshToken =>
-    authApi.post(import.meta.env.DEV ? '/refresh-token' : '/auth/refresh', {
-      token: refreshToken,
-    }),
+    authApi.post('/refresh-token', { token: refreshToken }),
   // Verificar validez del token actual (en desarrollo usa perfil)
-  verifyToken: () =>
-    authApi.get(import.meta.env.DEV ? '/usuarios/perfil' : '/auth/me'),
+  verifyToken: () => authApi.get('/usuarios/perfil'),
   // Solicitar recuperación de contraseña
-  forgotPassword: email =>
-    authApi.post(
-      import.meta.env.DEV ? '/forgot-password' : '/auth/forgot-password',
-      { email },
-    ),
+  forgotPassword: email => authApi.post('/forgot-password', { email }),
   // Restablecer contraseña con token
-  resetPassword: resetData =>
-    authApi.post(
-      import.meta.env.DEV ? '/reset-password' : '/auth/reset-password',
-      resetData,
-    ),
+  resetPassword: resetData => authApi.post('/reset-password', resetData),
 }
 
 // API DE USUARIOS - Gestión de perfiles y usuarios
