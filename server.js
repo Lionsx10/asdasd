@@ -1,5 +1,6 @@
 // IMPORTS - Importación de dependencias principales
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 // Helmet puede ser ESM en versiones recientes; lo cargamos dinámicamente
 let helmetMiddleware = null;
@@ -19,7 +20,7 @@ async function setupHelmet(app) {
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         imgSrc: ["'self'", "data:", "https:"],
       },
     },
@@ -82,22 +83,7 @@ app.get('/health', (req, res) => {
 });
 
 // RUTA RAÍZ - Información general de la API y endpoints disponibles
-app.get('/', (req, res) => {
-  res.json({
-    message: 'API Sistema de Gestión de Muebles a Medida',
-    version: '1.0.0',
-    documentation: '/api/docs',
-    endpoints: {
-      auth: '/api/login, /api/usuarios/registrar',
-      usuarios: '/api/usuarios/*',
-      pedidos: '/api/pedidos/*',
-      catalogo: '/api/catalogo',
-      recomendaciones: '/api/recomendaciones/*',
-      notificaciones: '/api/notificaciones/*',
-      analisisEspacio: '/api/analisis-espacio/*'
-    }
-  });
-});
+// La ruta raíz será servida por el frontend (SPA)
 
 // CONFIGURACIÓN DE RUTAS - Montaje de rutas organizadas por módulos bajo el prefijo /api
 app.use('/api', authRoutes); // Rutas de autenticación (login, registro)
@@ -109,22 +95,20 @@ app.use('/api/notificaciones', notificacionesRoutes); // Rutas de notificaciones
 app.use('/api/analisis-espacio', analisisEspacioRoutes); // Rutas de análisis de espacio con IA
 app.use('/api/modelos', modelosRoutes); // Rutas de generación de modelos 3D
 
-// MIDDLEWARE PARA RUTAS NO ENCONTRADAS - Manejo de 404
-app.use('*', (req, res) => {
+// ===============================
+// SERVIR FRONTEND VUE (VITE)
+// ===============================
+const FRONTEND_PATH = path.join(__dirname, 'frontend', 'dist');
+app.use(express.static(FRONTEND_PATH));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(FRONTEND_PATH, 'index.html'));
+});
+
+// 404 exclusivo para rutas de API no encontradas
+app.use('/api/*', (req, res) => {
   res.status(404).json({
-    error: 'Ruta no encontrada',
-    message: `La ruta ${req.originalUrl} no existe en esta API`,
-    availableRoutes: [
-      'GET /',
-      'GET /health',
-      'POST /api/login',
-      'POST /api/usuarios/registrar',
-      'GET /api/usuarios/perfil',
-      'POST /api/pedidos',
-      'GET /api/pedidos/:id',
-      'GET /api/catalogo',
-      'POST /api/recomendaciones/ia'
-    ]
+    error: 'Ruta de API no encontrada',
+    message: `La ruta ${req.originalUrl} no existe en esta API`
   });
 });
 

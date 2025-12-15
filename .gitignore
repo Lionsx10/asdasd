@@ -86,7 +86,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -127,7 +126,6 @@ dist
 .pnp.*
 
 # Frontend specific
-frontend/dist/
 frontend/.vite/
 frontend/.env.local
 frontend/.env.development.local
@@ -162,7 +160,6 @@ Thumbs.db
 
 # Build artifacts
 build/
-dist/
 
 # Test coverage
 coverage/
