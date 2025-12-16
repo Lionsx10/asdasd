@@ -37,9 +37,13 @@ export const useAuthStore = defineStore('auth', () => {
         : await authAPI.login(credentials)
 
       const data = response.data || {}
-      const accessToken = data.token
-      const newRefreshToken = data.refreshToken
-      const usuario = data.usuario
+      const headerAuth = (response.headers?.authorization || response.headers?.Authorization || '').toString()
+      const headerToken = headerAuth.replace(/^Bearer\s+/i, '') || null
+      const accessToken =
+        data.token || data.access_token || data.authToken || headerToken || null
+      const newRefreshToken =
+        data.refreshToken || data.refresh_token || data.authToken || null
+      const usuario = data.usuario || data.user || data.data?.user || null
 
       // GUARDAR TOKENS Y USUARIO en el estado
       token.value = accessToken
@@ -47,12 +51,14 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = usuario
 
       // PERSISTIR TOKENS Y USUARIO en localStorage para mantener sesión
-      localStorage.setItem('token', accessToken)
-      localStorage.setItem('refreshToken', newRefreshToken)
-      localStorage.setItem('user', JSON.stringify(usuario))
+      if (accessToken) localStorage.setItem('token', accessToken)
+      if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken)
+      if (usuario) localStorage.setItem('user', JSON.stringify(usuario))
 
       // CONFIGURAR TOKEN en headers de API para futuras peticiones
-      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      if (accessToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      }
 
       toast.success(`¡Bienvenido, ${usuario?.nombre || 'Usuario'}!`)
 
