@@ -6,12 +6,12 @@ const AUTH_API_BASE = import.meta.env.DEV
   ? '/api'
   : import.meta.env.VITE_AUTH_API_BASE_URL ||
     import.meta.env.VITE_API_BASE_URL ||
-    'https://asdasd.vercel.app/api'
+    'https://comercialhg.vercel.app/api'
 const APP_API_BASE = import.meta.env.DEV
   ? '/api'
   : import.meta.env.VITE_APP_API_BASE_URL ||
     import.meta.env.VITE_API_BASE_URL ||
-    'https://asdasd.vercel.app/api'
+    'https://comercialhg.vercel.app/api'
 const authApi = axios.create({
   baseURL: AUTH_API_BASE,
   timeout: 30000,

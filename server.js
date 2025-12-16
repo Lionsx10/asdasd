@@ -72,6 +72,7 @@ app.use(
       'http://localhost:8081',
       'http://localhost:5173',
       'http://127.0.0.1:5173',
+      'https://comercialhg.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
