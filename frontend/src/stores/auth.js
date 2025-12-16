@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
         data.token || data.access_token || data.authToken || headerToken || null
       const newRefreshToken =
         data.refreshToken || data.refresh_token || data.authToken || null
-      const usuario = data.usuario || data.user || data.data?.user || null
+      let usuario = data.usuario || data.user || data.data?.user || null
 
       // GUARDAR TOKENS Y USUARIO en el estado
       token.value = accessToken
@@ -58,6 +58,23 @@ export const useAuthStore = defineStore('auth', () => {
       // CONFIGURAR TOKEN en headers de API para futuras peticiones
       if (accessToken) {
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      }
+
+      // Obtener perfil si el login no retornó usuario
+      if (!usuario && accessToken) {
+        try {
+          const profileResp = await authAPI.verifyToken()
+          const u =
+            profileResp.data?.usuario ||
+            profileResp.usuario ||
+            profileResp.data ||
+            null
+          if (u) {
+            usuario = u
+            user.value = usuario
+            localStorage.setItem('user', JSON.stringify(usuario))
+          }
+        } catch (_) {}
       }
 
       toast.success(`¡Bienvenido, ${usuario?.nombre || 'Usuario'}!`)
@@ -126,9 +143,10 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       const response = await authAPI.verifyToken()
-      user.value = response.data.usuario
+      const u = response.data?.usuario || response.usuario || response.data || null
+      user.value = u
 
-      return { success: true, user: response.data.usuario }
+      return { success: true, user: u }
     } catch (error) {
       // TOKEN INVÁLIDO - Intentar renovar con refresh token
       if (refreshToken.value) {

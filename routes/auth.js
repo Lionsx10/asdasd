@@ -214,15 +214,11 @@ router.post('/login', asyncHandler(async (req, res) => {
     let authToken, user;
     
     if (response.authToken && response.user) {
-      // Estructura esperada: { authToken, user }
       authToken = response.authToken;
       user = response.user;
-      console.log('📋 Usuario desde response.user:', JSON.stringify(user, null, 2));
     } else {
-      // Fallback para otras estructuras
-      authToken = response.authToken || response.token || response.access_token || 'temp_token';
+      authToken = response.authToken || response.token || response.access_token || null;
       user = response.user || response;
-      console.log('📋 Usuario desde fallback:', JSON.stringify(user, null, 2));
     }
 
     // Asegurar que tenemos los datos mínimos del usuario
@@ -236,20 +232,18 @@ router.post('/login', asyncHandler(async (req, res) => {
       is_admin: (user?.is_admin === true) || (user?.admin === true) || ((user?.rol || user?.role) === 'admin')
     };
 
-    console.log('👤 UserData final enviado al frontend:', JSON.stringify(userData, null, 2));
+    const jwtToken = generarToken({ id: userData.id, correo: userData.email, rol: userData.rol });
 
-    // Registrar el evento de inicio de sesión exitoso
     logger.info('Usuario inició sesión', {
       userId: userData.id,
       email: userData.email,
       ip: req.ip
     });
 
-    // Responder con los datos del usuario y el token
     res.json({
       message: 'Inicio de sesión exitoso',
-      token: authToken,
-      refreshToken: authToken, // Xano maneja tokens de forma diferente
+      token: jwtToken,
+      refreshToken: jwtToken,
       usuario: userData
     });
 

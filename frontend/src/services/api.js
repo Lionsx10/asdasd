@@ -258,7 +258,17 @@ export const authAPI = {
   refreshToken: refreshToken =>
     authApi.post('/refresh-token', { token: refreshToken }),
   // Verificar validez del token actual (en desarrollo usa perfil)
-  verifyToken: () => authApi.get('/usuarios/perfil'),
+  verifyToken: async () => {
+    try {
+      return await authApi.get('/usuarios/perfil')
+    } catch (_) {
+      try {
+        return await authApi.get('/auth/me')
+      } catch (e2) {
+        throw e2
+      }
+    }
+  },
   // Solicitar recuperación de contraseña
   forgotPassword: email => authApi.post('/forgot-password', { email }),
   // Restablecer contraseña con token
