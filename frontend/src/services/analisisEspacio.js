@@ -8,12 +8,15 @@ import api from './api'
 import axios from 'axios'
 
 // Instancia de axios sin autenticación para endpoints públicos
+const ORIGIN_API_BASE = typeof window !== 'undefined'
+  ? `${window.location.origin}/api`
+  : '/api'
 const publicApi = axios.create({
   baseURL: import.meta.env.DEV
     ? '/api'
     : import.meta.env.VITE_APP_API_BASE_URL ||
       import.meta.env.VITE_API_BASE_URL ||
-      'https://x8ki-letl-twmt.n7.xano.io/api:nWj2ojpi',
+      ORIGIN_API_BASE,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
